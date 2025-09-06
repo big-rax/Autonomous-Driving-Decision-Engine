@@ -60,7 +60,7 @@ public:
 
     string getSideObstacle(string);         //Get side of the road type obstacles
 
-    string getAdjustment(string);            //Get adjustment according to weaather conditions
+    string getAdjustment(string, bool);            //Get adjustment according to weaather conditions
 
     string traverseTree(TreeNode*, queue<string>);   //Pass the root of "tree" and the userAnswer queue gathered in Vehicle
 
@@ -189,13 +189,14 @@ public:
 
             DecisionMaker AIdecision;
             string decision = AIdecision.getDecision(roadType, obstacleType, obstacleSuddenly, pedestrianNearby, vehicleNear);
-            decision += AIdecision.getAdjustment(weather);
+            bool crashOccurred = (decision.find("crash") != string::npos);
+            decision += AIdecision.getAdjustment(weather, crashOccurred);
             dataLog[loopCounter].logDecision = decision; //Store the decision in the log
 
-            cout << "Display log data? (yes/no): ";
-            cin >> tempLogChoice;
+            tempLogChoice = returnDecision("Display log data? (yes/no): ");
             if (tempLogChoice == "yes")
             {
+                end_time = chrono::system_clock::to_time_t(chrono::system_clock::now());
                 cout << "Log data at " << ctime(&end_time) << endl;
                 cout << "Road Type: " << dataLog[loopCounter].logRoadType << endl;
                 cout << "Weather: " << dataLog[loopCounter].logWeather << endl;
@@ -498,8 +499,8 @@ void DecisionMaker::DecisionTree::createSuddenlyTree(string obstacleType, string
     root->right = createTreeNode("");
 
     root->right->right = createTreeNode("");
-    root->right->right->left = createTreeNode("Hit the breaks, swirve out of your lane, and crash into the vehicle nearby to avoid hitting the pedestrians.");
-    root->right->right->middle = createTreeNode("Hit the breaks, but crash into the " + obstacleType + ".");
+    root->right->right->left = createTreeNode("Hit the brakes, swerve out of your lane, and crash into the vehicle nearby to avoid hitting the pedestrians.");
+    root->right->right->middle = createTreeNode("Hit the brakes, but crash into the " + obstacleType + ".");
     root->right->right->right = createTreeNode("Slow down, but run over the " + obstacleType + ".");
 }
 
@@ -536,15 +537,17 @@ string DecisionMaker::getSideObstacle(string roadType)         //Get side of the
     }
 }
 
-string DecisionMaker::getAdjustment(string weather)            //Get adjustment according to weaather conditions
+string DecisionMaker::getAdjustment(string weather, bool crashOccurred)            //Get adjustment according to weaather conditions
 {
-    if (weather == "rain" || weather == "snow")
-    {
-        return " (Adjust speed for " + weather + ")";
+    if (weather == "rain" || weather == "snow") {
+        return crashOccurred
+            ? " (Attempted to adjust speed for " + weather + ", but crash was unavoidable)"
+            : " (Adjust speed for " + weather + ")";
     }
-    if (weather == "fog")
-    {
-        return " (Turn fog lights on and adjust speed for " + weather + ")";
+    if (weather == "fog") {
+        return crashOccurred
+            ? " (Fog reduced visibility despite adjustments)"
+            : " (Turn fog lights on and adjust speed for fog)";
     }
     return "";
 }
